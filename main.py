@@ -2,6 +2,7 @@ import torch.optim as optim
 from net.network import SwinJSCC
 from data.datasets import get_loader
 from utils import *
+import matplotlib.pyplot as plt
 
 # torch.backends.cudnn.benchmark = True
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
@@ -16,7 +17,7 @@ import torchvision
 parser = argparse.ArgumentParser(description='SwinJSCC')
 parser.add_argument('--training', action='store_true', help='training or testing')
 parser.add_argument('--trainset', type=str, default='DIV2K', choices=['CIFAR10', 'DIV2K'], help='train dataset name')
-parser.add_argument('--testset', type=str, default='ffhq', choices=['kodak', 'CLIC21', 'ffhq'], help='specify the testset for HR models')
+parser.add_argument('--testset', type=str, default='CIFAR10', choices=['kodak', 'CLIC21', 'ffhq', 'CIFAR10'], help='specify the testset for HR models')
 parser.add_argument('--distortion-metric', type=str, default='MSE', choices=['MSE', 'MS-SSIM'], help='evaluation metrics')
 parser.add_argument('--model',
                     type=str,
@@ -27,6 +28,7 @@ parser.add_argument('--channel-type', type=str, default='awgn', choices=['awgn',
 parser.add_argument('--C', type=str, default='96', help='bottleneck dimension')
 parser.add_argument('--multiple-snr', type=str, default='10', help='random or fixed snr')
 parser.add_argument('--model_size', type=str, default='base', choices=['small', 'base', 'large'], help='SwinJSCC model size')
+parser.add_argument('--plot', action='store_true', help='save test result charts as images')
 args = parser.parse_args()
 
 
@@ -54,11 +56,14 @@ class config():
     if args.trainset == 'CIFAR10':
         save_model_freq = 5
         image_dims = (3, 32, 32)
-        train_data_dir = "/media/D/Dataset/CIFAR10/"
-        test_data_dir = "/media/D/Dataset/CIFAR10/"
+        train_data_dir = "./data/CIFAR10/"
+        test_data_dir = "./data/CIFAR10/"
         batch_size = 128
         downsample = 2
-        channel_number = int(args.C)
+        if args.model == 'SwinJSCC_w/o_SAandRA' or args.model == 'SwinJSCC_w/_SA':
+            channel_number = int(args.C)
+        else:
+            channel_number = None
         encoder_kwargs = dict(
             model=args.model,
             img_size=(image_dims[1], image_dims[2]),
@@ -212,9 +217,14 @@ else:
 
 
 def load_weights(model_path):
-    pretrained = torch.load(model_path)
-    net.load_state_dict(pretrained, strict=True)
+    pretrained = torch.load(model_path, map_location=config.device)
+    missing, unexpected = net.load_state_dict(pretrained, strict=False)
     del pretrained
+    if missing:
+        logger.info(f"Weight loading: {len(missing)} missing keys (first: {missing[0]})")
+    if unexpected:
+        logger.info(f"Weight loading: {len(unexpected)} unexpected keys (first: {unexpected[0]})")
+    return len(missing) == 0 and len(unexpected) == 0
 
 
 def train_one_epoch(args):
@@ -378,6 +388,62 @@ def test():
     print("MS-SSIM: {}".format(results_msssim.tolist()))
     print("Finish Test!")
 
+    if args.plot:
+        os.makedirs(config.workdir, exist_ok=True)
+        chart_dir = os.path.join(config.workdir, 'charts')
+        os.makedirs(chart_dir, exist_ok=True)
+
+        snr_labels = [str(int(s)) for s in multiple_snr]
+        cbr_labels = [f'C={c}' for c in channel_number]
+
+        # ---- PSNR vs SNR ----
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+        for j in range(len(channel_number)):
+            ax1.plot(multiple_snr, results_psnr[:, j], 'o-', label=f'C={channel_number[j]}')
+        ax1.set_xlabel('SNR (dB)')
+        ax1.set_ylabel('PSNR (dB)')
+        ax1.set_title('PSNR vs SNR')
+        ax1.legend()
+        ax1.grid(True, alpha=0.3)
+
+        for j in range(len(channel_number)):
+            ax2.plot(multiple_snr, results_msssim[:, j], 'o-', label=f'C={channel_number[j]}')
+        ax2.set_xlabel('SNR (dB)')
+        ax2.set_ylabel('MS-SSIM')
+        ax2.set_title('MS-SSIM vs SNR')
+        ax2.legend()
+        ax2.grid(True, alpha=0.3)
+
+        plt.tight_layout()
+        plt.savefig(os.path.join(chart_dir, 'snr_vs_psnr_msssim.png'), dpi=150)
+        plt.close()
+        logger.info(f"Chart saved to {chart_dir}/snr_vs_psnr_msssim.png")
+
+        # ---- PSNR vs CBR (if multiple rates) ----
+        if len(channel_number) > 1:
+            cbr_values = results_cbr[0, :]
+            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+            for i in range(len(multiple_snr)):
+                ax1.plot(cbr_values, results_psnr[i, :], 'o-', label=f'SNR={multiple_snr[i]}dB')
+            ax1.set_xlabel('CBR (bpp)')
+            ax1.set_ylabel('PSNR (dB)')
+            ax1.set_title('PSNR vs CBR')
+            ax1.legend()
+            ax1.grid(True, alpha=0.3)
+
+            for i in range(len(multiple_snr)):
+                ax2.plot(cbr_values, results_msssim[i, :], 'o-', label=f'SNR={multiple_snr[i]}dB')
+            ax2.set_xlabel('CBR (bpp)')
+            ax2.set_ylabel('MS-SSIM')
+            ax2.set_title('MS-SSIM vs CBR')
+            ax2.legend()
+            ax2.grid(True, alpha=0.3)
+
+            plt.tight_layout()
+            plt.savefig(os.path.join(chart_dir, 'cbr_vs_psnr_msssim.png'), dpi=150)
+            plt.close()
+            logger.info(f"Chart saved to {chart_dir}/cbr_vs_psnr_msssim.png")
+
 
 if __name__ == '__main__':
     seed_torch()
@@ -386,7 +452,24 @@ if __name__ == '__main__':
     torch.manual_seed(seed=config.seed)
     net = SwinJSCC(args, config)
     model_path = "./checkpoint/SwinJSCC_w_SAandRA_AWGN_HRimage_cbr_psnr_snr.model"
-    load_weights(model_path)
+    if os.path.exists(model_path):
+        try:
+            perfect_match = load_weights(model_path)
+            if perfect_match:
+                logger.info(f"Loaded pretrained weights from {model_path} (perfect match)")
+            else:
+                logger.info(f"Loaded pretrained weights from {model_path} (partial match, some keys differ)")
+        except Exception as e:
+            logger.warning(f"Failed to load checkpoint: {e}")
+            if not args.training:
+                raise RuntimeError("Cannot test without a valid checkpoint. Train first with --training, "
+                                   "or use a checkpoint that matches the current model architecture.")
+    else:
+        if args.training:
+            logger.info(f"No pretrained checkpoint found at {model_path}, training from scratch")
+        else:
+            raise RuntimeError(f"No checkpoint found at {model_path}. Train first with --training, "
+                               "or specify a valid checkpoint path.")
     net = net.cuda()
     model_params = [{'params': net.parameters(), 'lr': 0.0001}]
     train_loader, test_loader = get_loader(args, config)
@@ -398,6 +481,7 @@ if __name__ == '__main__':
         for epoch in range(steps_epoch, config.tot_epoch):
             train_one_epoch(args)
             if (epoch + 1) % config.save_model_freq == 0:
+                os.makedirs(config.models, exist_ok=True)
                 save_model(net, save_path=config.models + '/{}_EP{}.model'.format(config.filename, epoch + 1))
                 test()
     else:

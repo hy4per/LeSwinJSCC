@@ -96,7 +96,7 @@ class config():
     elif args.trainset == 'DIV2K':
         save_model_freq = 100
         image_dims = (3, 256, 256)
-        base_path = DATA_ROOT + '/DIV2K'
+        base_path = DATA_ROOT + '/DIV2K/HighResolution'
         if args.testset == 'kodak':
             test_data_dir = [DATA_ROOT + '/test/Kodak/']
         elif args.testset == 'CLIC21':

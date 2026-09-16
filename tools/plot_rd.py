@@ -11,11 +11,11 @@ The paper reuses cyan for whichever adaptive variant appears in a given panel
 (it never shows w/ SA and w/ RA in the same panel). If our data ever does put
 both in one axes the script moves w/ RA to orange so the lines stay readable.
 
-`--paper-refs` additionally overlays values read off the published figures at
-7x-16x magnification. Those are EYEBALLED from the PDF, good to roughly
-0.1-0.4 dB, and exist only as a sanity check -- the published numbers are
-never exact. They are drawn hollow and grey so they cannot be mistaken for
-our measurements.
+`--paper-refs` overlays the published curves as hollow open markers so that a
+real discrepancy is visible at a glance. Where our reproduction is correct the
+overlay hides exactly behind our own filled markers. See PAPER_REFS for the
+provenance of each set: fig10a was vector-extracted from the PDF and is
+essentially exact; the others were eyeballed and are only good to ~0.3 dB.
 
 Usage:
     python tools/plot_rd.py                       # all figures present in the csv
@@ -59,9 +59,22 @@ FIG_META = {
     'fig13d': dict(x='CBR',       y='msssim_db',  xlabel='channel bandwidth ratio', ylabel='MS-SSIM (dB)'),
 }
 
-# Values READ OFF the published figures (7x-16x render of the PDF vector art),
-# not printed numbers. Approximate to ~0.1-0.4 dB. Sanity-check overlay only.
+# Reference values from the published figures. PROVENANCE MATTERS HERE:
+#
+#   fig10a  -- VECTOR-EXTRACTED from the PDF's vector art (gridline-calibrated),
+#              accurate to ~0.01 dB. Trustworthy.
+#   others  -- EYEBALLED from a 7x render, only good to ~0.3 dB. I got CIFAR10
+#              wrong twice this way. Treat as a rough sanity check only, and
+#              replace with vector extraction before drawing conclusions from
+#              any apparent mismatch.
+#
+# Note that where our reproduction is correct the overlay sits exactly on top of
+# our markers and is invisible -- the overlay only earns its keep by making a
+# real discrepancy obvious.
 PAPER_REFS = {
+    ('fig10a', 'awgn'): {
+        SA: [(1, 29.54), (4, 32.58), (7, 35.34), (10, 37.74), (13, 39.68)],
+    },
     ('fig10c', 'awgn'): {
         WO:   [(1, 29.7), (4, 31.3), (7, 32.6), (10, 33.65), (13, 34.45)],
         SA:   [(1, 29.6), (4, 31.3), (7, 32.6), (10, 33.60), (13, 34.25)],
@@ -79,9 +92,6 @@ PAPER_REFS = {
         SA:   [(1, 13.4), (4, 15.7), (7, 17.7), (10, 19.3), (13, 20.7)],
         SARA: [(1, 13.3), (4, 15.5), (7, 17.2), (10, 18.6), (13, 19.5)],
     },
-    ('fig10a', 'awgn'): {
-        SA:   [(1, 29.3), (4, 33.0), (7, 35.7), (10, 37.6), (13, 39.5)],
-    },
 }
 
 
@@ -90,6 +100,13 @@ def dataset_title(rows):
     if r['trainset'] == 'CIFAR10':
         return 'CIFAR10'
     return r['testset'].capitalize()
+
+
+CHANNEL_TITLE = {'awgn': 'AWGN', 'rayleigh': 'Rayleigh'}
+
+
+def channel_title(channel):
+    return CHANNEL_TITLE.get(channel.lower(), channel)
 
 
 def load_rows(path):
@@ -136,7 +153,7 @@ def plot_panel(ax, fig, channel, rows, meta, paper_refs=False):
     ax.set_xlabel(meta['xlabel'])
     ax.set_ylabel(meta['ylabel'])
     ax.grid(True, which='both', alpha=0.4)
-    ax.set_title('%s dataset, %s channel' % (dataset_title(rows), channel.capitalize()))
+    ax.set_title('%s dataset, %s channel' % (dataset_title(rows), channel_title(channel)))
     ax.legend(loc='lower right', fontsize=8, framealpha=0.9)
     ax.tick_params(labelsize=8)
 

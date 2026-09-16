@@ -52,7 +52,9 @@ CONFLICT_COLOR = 'darkorange'
 FIG_META = {
     'fig10a': dict(x='snr',       y='psnr',       xlabel='SNR (dB)',               ylabel='PSNR (dB)'),
     'fig10c': dict(x='snr',       y='psnr',       xlabel='SNR (dB)',               ylabel='PSNR (dB)'),
-    'fig10d': dict(x='snr',       y='psnr',       xlabel='SNR (dB)',               ylabel='PSNR (dB)'),
+    # Panel letters follow the paper: (c) Kodak AWGN, (e) Kodak Rayleigh,
+    # (d) would be CIFAR10 Rayleigh.
+    'fig10e': dict(x='snr',       y='psnr',       xlabel='SNR (dB)',               ylabel='PSNR (dB)'),
     'fig11b': dict(x='CBR',       y='psnr',       xlabel='channel bandwidth ratio', ylabel='PSNR (dB)'),
     'fig11e': dict(x='CBR',       y='psnr',       xlabel='channel bandwidth ratio', ylabel='PSNR (dB)'),
     'fig13b': dict(x='snr',       y='msssim_db',  xlabel='SNR (dB)',               ylabel='MS-SSIM (dB)'),
@@ -61,32 +63,37 @@ FIG_META = {
 
 # Reference values from the published figures. PROVENANCE MATTERS HERE:
 #
-#   fig10a  -- VECTOR-EXTRACTED from the PDF's vector art (gridline-calibrated),
-#              accurate to ~0.01 dB. Trustworthy.
-#   others  -- EYEBALLED from a 7x render, only good to ~0.3 dB. I got CIFAR10
-#              wrong twice this way. Treat as a rough sanity check only, and
-#              replace with vector extraction before drawing conclusions from
-#              any apparent mismatch.
+#   fig10a/c, fig11b -- VECTOR-EXTRACTED from the PDF (tools/extract_paper_refs.py,
+#                       gridline-calibrated), good to ~0.01 dB. Trustworthy.
+#   fig13b           -- EYEBALLED from a 7x render, only good to ~0.3 dB. I got
+#                       CIFAR10 wrong twice this way. Rough sanity check only.
 #
-# Note that where our reproduction is correct the overlay sits exactly on top of
-# our markers and is invisible -- the overlay only earns its keep by making a
-# real discrepancy obvious.
+# The extractor is NOT trustworthy for the BPG+*/DeepJSCC baselines: those
+# series pick up the axes frame and must be read from the rendered figure.
+# See the note in tools/extract_paper_refs.py:curve_points.
+#
+# Where our reproduction is correct the overlay hides exactly behind our own
+# markers and is invisible -- the overlay only earns its keep by making a real
+# discrepancy obvious.
 PAPER_REFS = {
     ('fig10a', 'awgn'): {
-        SA: [(1, 29.54), (4, 32.58), (7, 35.34), (10, 37.74), (13, 39.68)],
+        SA: [(1, 29.535), (4, 32.58), (7, 35.34), (10, 37.74), (13, 39.680)],
     },
     ('fig10c', 'awgn'): {
-        WO:   [(1, 29.7), (4, 31.3), (7, 32.6), (10, 33.65), (13, 34.45)],
-        SA:   [(1, 29.6), (4, 31.3), (7, 32.6), (10, 33.60), (13, 34.25)],
-        SARA: [(1, 29.5), (4, 31.1), (7, 32.3), (10, 33.15), (13, 33.85)],
+        WO:   [(1, 29.7540), (4, 31.2772), (7, 32.6846),
+               (10, 33.6947), (13, 34.4849)],
+        SA:   [(1, 29.6598), (4, 31.2986), (7, 32.6219),
+               (10, 33.6044), (13, 34.2923)],
+        SARA: [(1, 29.5283), (4, 31.0636), (7, 32.2617),
+               (10, 33.1756), (13, 33.8025)],
     },
     ('fig11b', 'awgn'): {
-        WO:   [(0.020833, 29.2), (0.041667, 32.0), (0.0625, 33.3),
-               (0.083333, 35.0), (0.125, 37.05)],
-        RA:   [(0.020833, 29.3), (0.041667, 31.6), (0.0625, 33.4),
-               (0.083333, 34.5), (0.125, 35.97)],
-        SARA: [(0.020833, 29.0), (0.041667, 31.7), (0.0625, 33.2),
-               (0.083333, 34.4), (0.125, 35.92)],
+        WO:   [(0.020833, 29.3267), (0.041667, 31.8820), (0.0625, 33.6045),
+               (0.083333, 35.0028), (0.125, 37.1397)],
+        RA:   [(0.020833, 29.0491), (0.041667, 31.5766), (0.0625, 33.2286),
+               (0.083333, 34.4528), (0.125, 36.0577)],
+        SARA: [(0.020833, 29.0337), (0.041667, 31.5531), (0.0625, 33.1755),
+               (0.083333, 34.4021), (0.125, 36.0427)],
     },
     ('fig13b', 'awgn'): {
         SA:   [(1, 13.4), (4, 15.7), (7, 17.7), (10, 19.3), (13, 20.7)],

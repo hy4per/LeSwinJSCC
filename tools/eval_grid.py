@@ -21,7 +21,7 @@ Usage:
     python tools/eval_grid.py --list                    # run table, no eval
     python tools/eval_grid.py --figs fig11b --limit 2   # quick smoke test
     python tools/eval_grid.py                           # default AWGN+CIFAR10
-    python tools/eval_grid.py --figs fig10d fig11e      # Rayleigh figures
+    python tools/eval_grid.py --figs fig10e fig11e      # Rayleigh figures
 """
 
 import argparse
@@ -52,7 +52,7 @@ SNRS = [1, 4, 7, 10, 13]
 CS = [32, 64, 96, 128, 192]  # CBR 1/48, 1/24, 1/16, 1/12, 1/8 (downsample=4)
 C_CBR1_16 = 96
 CKPT = 'checkpoint'
-KNOWN_FIGS = ['fig10a', 'fig10c', 'fig10d', 'fig11b', 'fig11e', 'fig13b', 'fig13d']
+KNOWN_FIGS = ['fig10a', 'fig10c', 'fig10e', 'fig11b', 'fig11e', 'fig13b', 'fig13d']
 DEFAULT_FIGS = ['fig10c', 'fig11b', 'fig13b', 'fig13d', 'fig10a']
 
 
@@ -77,9 +77,11 @@ def build_runs():
                          channel=channel, metric=metric, trainset=trainset,
                          testset=testset, size=size, C=C, snr=snr))
 
-    # --- Fig.10 (c)/(d): PSNR vs SNR at average CBR 1/16 -------------------
+    # --- Fig.10 (c)/(e): PSNR vs SNR at average CBR 1/16 -------------------
+    # Panel letters follow the PAPER: (c) is Kodak AWGN, (e) is Kodak Rayleigh.
+    # ((d) is CIFAR10 Rayleigh, which needs CIFAR10 weights + a different C.)
     for fig, ch, tag in (('fig10c', 'awgn', 'AWGN'),
-                         ('fig10d', 'rayleigh', 'Rayleigh')):
+                         ('fig10e', 'rayleigh', 'Rayleigh')):
         for s in SNRS:
             add(fig, 'SwinJSCC_wo_SAandRA_%s_HRimage_snr%d_psnr_C96.model' % (tag, s),
                 WO, ch, 'MSE', 'DIV2K', 'kodak', 'base', C_CBR1_16, s)

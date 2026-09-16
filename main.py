@@ -29,6 +29,10 @@ parser.add_argument('--multiple-snr', type=str, default='10', help='random or fi
 parser.add_argument('--model_size', type=str, default='base', choices=['small', 'base', 'large'], help='SwinJSCC model size')
 args = parser.parse_args()
 
+# Dataset root. The layout under it mirrors the original author's:
+#   DIV2K/DIV2K_train_HR, CIFAR10/cifar-10-batches-py, test/Kodak, HR_Image_dataset/clic2021/test
+DATA_ROOT = '/root/autodl-tmp/LeSwinJSCC/data'
+
 
 class config():
     seed = 42
@@ -54,8 +58,8 @@ class config():
     if args.trainset == 'CIFAR10':
         save_model_freq = 5
         image_dims = (3, 32, 32)
-        train_data_dir = "/media/D/Dataset/CIFAR10/"
-        test_data_dir = "/media/D/Dataset/CIFAR10/"
+        train_data_dir = DATA_ROOT + '/CIFAR10/'
+        test_data_dir = DATA_ROOT + '/CIFAR10/'
         batch_size = 128
         downsample = 2
         channel_number = int(args.C)
@@ -92,13 +96,13 @@ class config():
     elif args.trainset == 'DIV2K':
         save_model_freq = 100
         image_dims = (3, 256, 256)
-        base_path = "/media/D/Dataset/DIV2K/"
+        base_path = DATA_ROOT + '/DIV2K'
         if args.testset == 'kodak':
-            test_data_dir = ["/media/D/Dataset/test/Kodak/"]
+            test_data_dir = [DATA_ROOT + '/test/Kodak/']
         elif args.testset == 'CLIC21':
-            test_data_dir = ["/media/D/Dataset/HR_Image_dataset/clic2021/test/"]
+            test_data_dir = [DATA_ROOT + '/HR_Image_dataset/clic2021/test/']
         elif args.testset == 'ffhq':
-            test_data_dir = ["/media/D/yangke/SwinJSCC/data/ffhq/"]
+            test_data_dir = [DATA_ROOT + '/ffhq/']
 
         train_data_dir = [
             base_path + '/clic2020/**', base_path + '/clic2021/train', base_path + '/clic2021/valid', base_path + '/clic2022/val', base_path + '/DIV2K_train_HR', base_path + '/DIV2K_valid_HR'
